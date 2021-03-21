@@ -32,3 +32,13 @@ pub fn add(a: Money, b: Money) -> Result(Money, money_error.MoneyError) {
     False -> Error(money_error.CurrencyMismatch)
   }
 }
+
+// Returns a new Money that is the absolute value of the one supplied.
+pub fn absolute_value(m: Money) -> Money {
+  Money(m.currency, int.absolute_value(m.value))
+}
+
+// Return a new Money with the value negated.
+pub fn negate(m: Money) -> Money {
+  Money(m.currency, int.negate(m.value))
+}

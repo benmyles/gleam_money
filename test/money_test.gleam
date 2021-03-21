@@ -124,3 +124,35 @@ pub fn similar_test() {
   tuple(m2.currency, m2.value)
   |> should.equal(tuple(usd, 1500))
 }
+
+pub fn absolute_value_test() {
+  let db = currency_db.default()
+
+  assert Ok(usd) = currency_db.get(db, "USD")
+
+  Money(usd, 1000)
+  |> money.absolute_value()
+  |> should.equal(Money(usd, 1000))
+
+  Money(usd, -1000)
+  |> money.absolute_value()
+  |> should.equal(Money(usd, 1000))
+
+  Money(usd, 0)
+  |> money.absolute_value()
+  |> should.equal(Money(usd, 0))
+}
+
+pub fn negate_test() {
+  let db = currency_db.default()
+
+  assert Ok(usd) = currency_db.get(db, "USD")
+
+  Money(usd, 1000)
+  |> money.negate()
+  |> should.equal(Money(usd, -1000))
+
+  Money(usd, -1000)
+  |> money.negate()
+  |> should.equal(Money(usd, 1000))
+}
