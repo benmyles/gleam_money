@@ -1,5 +1,6 @@
 import gleam/order
 import gleam/int
+import gleam/list
 import money/money_error
 import money/currency
 import money/currency_db
@@ -41,4 +42,61 @@ pub fn absolute_value(m: Money) -> Money {
 // Return a new Money with the value negated.
 pub fn negate(m: Money) -> Money {
   Money(m.currency, int.negate(m.value))
+}
+
+// Simplified version of the allocate function that just takes a single
+// number of targets to allocate the Money among.
+pub fn allocate_to(money: Money, targets: Int) {
+  money
+  |> allocate(
+    list.range(0, targets)
+    |> list.map(fn(_) { 1 }),
+  )
+}
+
+// Allocate the given Money in the supplied ratios.
+// This algorithm is from P of EAA:
+// https://martinfowler.com/eaaCatalog/money.html
+pub fn allocate(money: Money, ratios: List(Int)) -> List(Money) {
+  let total =
+    list.fold(
+      over: ratios,
+      from: 0,
+      with: fn(a, b) { int.absolute_value(a) + b },
+    )
+  case total > 0 {
+    True -> do_allocate(money, ratios, total)
+    False -> list.map(ratios, with: fn(_) { similar(money, 0) })
+  }
+}
+
+fn do_allocate(money: Money, ratios: List(Int), total: Int) -> List(Money) {
+  let groups: List(Money) =
+    list.map(
+      ratios,
+      with: fn(r) {
+        similar(money, money.value * int.absolute_value(r) / total)
+      },
+    )
+
+  let remainder =
+    list.fold(
+      over: groups,
+      from: money.value,
+      with: fn(a: Money, b: Int) { b - a.value },
+    )
+
+  let tuple(lhs, rhs) = list.split(groups, int.absolute_value(remainder))
+  list.append(
+    list.map(
+      lhs,
+      fn(a) {
+        case remainder >= 0 {
+          True -> similar(a, a.value + 1)
+          False -> similar(a, a.value - 1)
+        }
+      },
+    ),
+    rhs,
+  )
 }
