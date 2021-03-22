@@ -43,20 +43,20 @@ pub fn negate(m: Money) -> Money {
   Money(m.currency, int.negate(m.value))
 }
 
-// Simplified version of the allocate function that just takes a single
-// number of targets to allocate the Money among.
+// Simplified version of the allocate function that allocates the Money among
+// the given number of groups.
 pub fn allocate_to(
   money: Money,
-  targets: Int,
+  num_groups: Int,
 ) -> Result(List(Money), MoneyError) {
-  try _ = case targets <= 0 {
+  try _ = case num_groups <= 0 {
     True -> Error(InvalidAllocationRatios)
     False -> Ok(False)
   }
 
   money
   |> allocate(
-    list.range(0, targets)
+    list.range(0, num_groups)
     |> list.map(fn(_) { 1 }),
   )
 }

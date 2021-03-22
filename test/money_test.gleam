@@ -36,6 +36,20 @@ pub fn example_test() {
   // ... but it is an error to try to compare different currencies.
   assert Error(CurrencyMismatch) = money.compare(ten_usd, twenty_gbp)
 
+  // Money can be allocated to groups using the algorithm in the P of EAA book
+  // (see https://martinfowler.com/eaaCatalog/money.html).
+  //
+  // Allocate the money among two groups as close to equal as possible:
+  assert Ok(groups) = money.allocate_to(Money(usd, 5), 2)
+  groups
+  |> should.equal([Money(usd, 3), Money(usd, 2)])
+  //
+  // Allocate the money to two groups using the supplied ratios
+  // (3/10 in group 1 and 7/10 in group 2):
+  assert Ok(groups) = money.allocate(Money(usd, 5), [3, 7])
+  groups
+  |> should.equal([Money(usd, 2), Money(usd, 3)])
+
   True
 }
 
