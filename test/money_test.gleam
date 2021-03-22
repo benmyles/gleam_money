@@ -4,14 +4,16 @@ import gleam/list
 import money.{Money}
 import money/currency
 import money/currency_db
-import money/money_error
+import money/money_error.{
+  CurrencyMismatch, EmptyAllocationRatios, InvalidAllocationRatios, UnknownCurrency,
+}
 
 pub fn example_test() {
   // Expensive operation -- keep the db around to reuse.
   let db = currency_db.default()
 
   // Currency must be in the db.
-  assert Error(money_error.UnknownCurrency) = currency_db.get(db, "@!@")
+  assert Error(UnknownCurrency) = currency_db.get(db, "@!@")
   // Luckily, the default db comes with a full set of currencies.
   assert Ok(usd) = currency_db.get(db, "USD")
   assert Ok(gbp) = currency_db.get(db, "GBP")
@@ -26,14 +28,13 @@ pub fn example_test() {
 
   // ... but we cannot add money of different currencies together.
   let twenty_gbp = Money(gbp, 20 * 100)
-  assert Error(money_error.CurrencyMismatch) = money.add(ten_usd, twenty_gbp)
+  assert Error(CurrencyMismatch) = money.add(ten_usd, twenty_gbp)
 
   // Similarly, money of the same currency can be compared.
   assert Ok(order.Gt) = money.compare(ten_usd, five_usd)
 
   // ... but it is an error to try to compare different currencies.
-  assert Error(money_error.CurrencyMismatch) =
-    money.compare(ten_usd, twenty_gbp)
+  assert Error(CurrencyMismatch) = money.compare(ten_usd, twenty_gbp)
 
   True
 }
@@ -42,7 +43,7 @@ pub fn new_test() {
   let db = currency_db.default()
 
   assert Ok(usd) = currency_db.get(db, "USD")
-  assert Error(money_error.UnknownCurrency) = currency_db.get(db, "@!@")
+  assert Error(UnknownCurrency) = currency_db.get(db, "@!@")
 
   let m = Money(usd, 1000)
   m.value
@@ -70,7 +71,7 @@ pub fn add_mismatched_currency_test() {
 
   let m1 = Money(usd, 1000)
   let m2 = Money(gbp, 500)
-  assert Error(money_error.CurrencyMismatch) = money.add(m1, m2)
+  assert Error(CurrencyMismatch) = money.add(m1, m2)
 
   True
 }
@@ -99,7 +100,7 @@ pub fn compare_test() {
   assert Ok(usd) = currency_db.get(db, "USD")
   assert Ok(gbp) = currency_db.get(db, "GBP")
 
-  assert Error(money_error.CurrencyMismatch) =
+  assert Error(CurrencyMismatch) =
     money.compare(Money(usd, 1000), Money(gbp, 1000))
 
   assert Ok(result) = money.compare(Money(usd, 1000), Money(usd, 1000))
@@ -163,76 +164,70 @@ pub fn allocate_test() {
 
   assert Ok(usd) = currency_db.get(db, "USD")
 
-  money.allocate(Money(usd, 5), [1])
-  |> should.equal([Money(usd, 5)])
-  money.allocate_to(Money(usd, 5), 1)
-  |> should.equal([Money(usd, 5)])
-  money.allocate_to(Money(usd, 5), 0)
-  |> should.equal([])
+  assert Error(EmptyAllocationRatios) = money.allocate(Money(usd, 5), [])
 
-  money.allocate(Money(usd, 5), [0])
+  assert Error(InvalidAllocationRatios) = money.allocate(Money(usd, 5), [0])
+  assert Error(InvalidAllocationRatios) = money.allocate(Money(usd, 5), [-1])
+  assert Error(InvalidAllocationRatios) = money.allocate(Money(usd, 5), [1, -1])
+
+  assert Error(InvalidAllocationRatios) = money.allocate_to(Money(usd, 5), 0)
+  assert Error(InvalidAllocationRatios) = money.allocate_to(Money(usd, 5), -1)
+
+  // Simple allocation to one group
+  assert Ok(groups) = money.allocate(Money(usd, 5), [1])
+  groups
+  |> should.equal([Money(usd, 5)])
+  assert Ok(groups) = money.allocate_to(Money(usd, 5), 1)
+  groups
+  |> should.equal([Money(usd, 5)])
+
+  // Allocating 0 results in groups of 0
+  assert Ok(groups) = money.allocate(Money(usd, 0), [1])
+  groups
   |> should.equal([Money(usd, 0)])
-  money.allocate_to(Money(usd, 0), 0)
-  |> should.equal([])
 
-  money.allocate(Money(usd, 5), [3, 7])
+  assert Ok(groups) = money.allocate(Money(usd, 0), [1, 1])
+  groups
+  |> should.equal([Money(usd, 0), Money(usd, 0)])
+
+  assert Ok(groups) = money.allocate_to(Money(usd, 0), 1)
+  groups
+  |> should.equal([Money(usd, 0)])
+
+  assert Ok(groups) = money.allocate_to(Money(usd, 0), 2)
+  groups
+  |> should.equal([Money(usd, 0), Money(usd, 0)])
+
+  // Allocation with a remainder
+  assert Ok(groups) = money.allocate(Money(usd, 5), [3, 7])
+  groups
   |> should.equal([Money(usd, 2), Money(usd, 3)])
-  money.allocate_to(Money(usd, 5), 2)
+
+  assert Ok(groups) = money.allocate_to(Money(usd, 5), 2)
+  groups
   |> should.equal([Money(usd, 3), Money(usd, 2)])
 
-  money.allocate(Money(usd, -5), [3, 7])
+  // Allocation with negative money
+  assert Ok(groups) = money.allocate(Money(usd, -5), [3, 7])
+  groups
   |> should.equal([Money(usd, -2), Money(usd, -3)])
-  money.allocate_to(Money(usd, -5), 2)
+
+  assert Ok(groups) = money.allocate_to(Money(usd, -5), 2)
+  groups
   |> should.equal([Money(usd, -3), Money(usd, -2)])
 
-  money.allocate(Money(usd, 5), [-3, -7])
-  |> should.equal([Money(usd, 2), Money(usd, 3)])
-  money.allocate_to(Money(usd, 5), -2)
-  |> should.equal([Money(usd, 3), Money(usd, 2)])
-
-  money.allocate(Money(usd, 5), [-3, 7])
-  |> should.equal([Money(usd, 2), Money(usd, 3)])
-
-  money.allocate(Money(usd, -5), [3, 7, 0])
-  |> should.equal([Money(usd, -2), Money(usd, -3), Money(usd, 0)])
-  money.allocate_to(Money(usd, -5), 3)
-  |> should.equal([Money(usd, -2), Money(usd, -2), Money(usd, -1)])
-
-  money.allocate(Money(usd, 1), [1, 1])
-  |> should.equal([Money(usd, 1), Money(usd, 0)])
-  money.allocate_to(Money(usd, 1), 2)
+  // Allocation to more groups than is possible
+  assert Ok(groups) = money.allocate(Money(usd, 1), [1, 1])
+  groups
   |> should.equal([Money(usd, 1), Money(usd, 0)])
 
-  money.allocate(Money(usd, 0), [1, 1])
-  |> should.equal([Money(usd, 0), Money(usd, 0)])
-  money.allocate_to(Money(usd, 0), 2)
-  |> should.equal([Money(usd, 0), Money(usd, 0)])
+  assert Ok(groups) = money.allocate_to(Money(usd, 1), 2)
+  groups
+  |> should.equal([Money(usd, 1), Money(usd, 0)])
 
-  money.allocate(Money(usd, 0), [0, 0])
-  |> should.equal([Money(usd, 0), Money(usd, 0)])
-
-  money.allocate(Money(usd, 10), [0, 1])
-  |> should.equal([Money(usd, 0), Money(usd, 10)])
-  money.allocate_to(Money(usd, 10), 2)
-  |> should.equal([Money(usd, 5), Money(usd, 5)])
-
-  money.allocate(Money(usd, 10), [1, 0])
-  |> should.equal([Money(usd, 10), Money(usd, 0)])
-
-  money.allocate(Money(usd, 10), [0, 0])
-  |> should.equal([Money(usd, 0), Money(usd, 0)])
-
-  money.allocate(Money(usd, 10), [0, 0, 0])
-  |> should.equal([Money(usd, 0), Money(usd, 0), Money(usd, 0)])
-
-  money.allocate(Money(usd, 100), [25, 25, 25, 25])
-  |> should.equal([
-    Money(usd, 25),
-    Money(usd, 25),
-    Money(usd, 25),
-    Money(usd, 25),
-  ])
-  money.allocate_to(Money(usd, 100), 4)
+  // Allocation to a larger set of groups
+  assert Ok(groups) = money.allocate(Money(usd, 100), [25, 25, 25, 25])
+  groups
   |> should.equal([
     Money(usd, 25),
     Money(usd, 25),
@@ -240,23 +235,12 @@ pub fn allocate_test() {
     Money(usd, 25),
   ])
 
-  money.allocate(Money(usd, 200), [1, 1])
-  |> should.equal([Money(usd, 100), Money(usd, 100)])
-  money.allocate_to(Money(usd, 200), 2)
-  |> should.equal([Money(usd, 100), Money(usd, 100)])
-
-  money.allocate(Money(usd, 201), [1, 1])
-  |> should.equal([Money(usd, 101), Money(usd, 100)])
-  money.allocate_to(Money(usd, 201), 2)
-  |> should.equal([Money(usd, 101), Money(usd, 100)])
-
-  money.allocate(Money(usd, 302), [1, 1, 1])
-  |> should.equal([Money(usd, 101), Money(usd, 101), Money(usd, 100)])
-  money.allocate_to(Money(usd, 302), 3)
-  |> should.equal([Money(usd, 101), Money(usd, 101), Money(usd, 100)])
-
-  money.allocate(Money(usd, 100), [1, 1, 1])
-  |> should.equal([Money(usd, 34), Money(usd, 33), Money(usd, 33)])
-  money.allocate_to(Money(usd, 100), 3)
-  |> should.equal([Money(usd, 34), Money(usd, 33), Money(usd, 33)])
+  assert Ok(groups) = money.allocate_to(Money(usd, 100), 4)
+  groups
+  |> should.equal([
+    Money(usd, 25),
+    Money(usd, 25),
+    Money(usd, 25),
+    Money(usd, 25),
+  ])
 }

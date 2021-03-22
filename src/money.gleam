@@ -1,7 +1,9 @@
 import gleam/order
 import gleam/int
 import gleam/list
-import money/money_error
+import money/money_error.{
+  CurrencyMismatch, EmptyAllocationRatios, InvalidAllocationRatios, MoneyError,
+}
 import money/currency
 import money/currency_db
 
@@ -11,13 +13,10 @@ pub type Money {
 }
 
 // Compare the value of two Money types.
-pub fn compare(
-  a: Money,
-  b: Money,
-) -> Result(order.Order, money_error.MoneyError) {
+pub fn compare(a: Money, b: Money) -> Result(order.Order, MoneyError) {
   case a.currency == b.currency {
     True -> Ok(int.compare(a.value, b.value))
-    False -> Error(money_error.CurrencyMismatch)
+    False -> Error(CurrencyMismatch)
   }
 }
 
@@ -27,10 +26,10 @@ pub fn similar(old: Money, new_value: Int) -> Money {
 }
 
 // Add two Money of the same currency together.
-pub fn add(a: Money, b: Money) -> Result(Money, money_error.MoneyError) {
+pub fn add(a: Money, b: Money) -> Result(Money, MoneyError) {
   case a.currency == b.currency {
     True -> Ok(similar(a, a.value + b.value))
-    False -> Error(money_error.CurrencyMismatch)
+    False -> Error(CurrencyMismatch)
   }
 }
 
@@ -46,7 +45,15 @@ pub fn negate(m: Money) -> Money {
 
 // Simplified version of the allocate function that just takes a single
 // number of targets to allocate the Money among.
-pub fn allocate_to(money: Money, targets: Int) {
+pub fn allocate_to(
+  money: Money,
+  targets: Int,
+) -> Result(List(Money), MoneyError) {
+  try _ = case targets <= 0 {
+    True -> Error(InvalidAllocationRatios)
+    False -> Ok(False)
+  }
+
   money
   |> allocate(
     list.range(0, targets)
@@ -57,20 +64,27 @@ pub fn allocate_to(money: Money, targets: Int) {
 // Allocate the given Money in the supplied ratios.
 // This algorithm is from P of EAA:
 // https://martinfowler.com/eaaCatalog/money.html
-pub fn allocate(money: Money, ratios: List(Int)) -> List(Money) {
+pub fn allocate(
+  money: Money,
+  ratios: List(Int),
+) -> Result(List(Money), MoneyError) {
+  try _ = case list.is_empty(ratios) {
+    True -> Error(EmptyAllocationRatios)
+    False -> Ok(False)
+  }
+
+  try _ = case list.any(ratios, fn(a) { a <= 0 }) {
+    True -> Error(InvalidAllocationRatios)
+    False -> Ok(False)
+  }
+
   let total =
     list.fold(
       over: ratios,
       from: 0,
       with: fn(a, b) { int.absolute_value(a) + b },
     )
-  case total > 0 {
-    True -> do_allocate(money, ratios, total)
-    False -> list.map(ratios, with: fn(_) { similar(money, 0) })
-  }
-}
 
-fn do_allocate(money: Money, ratios: List(Int), total: Int) -> List(Money) {
   let groups: List(Money) =
     list.map(
       ratios,
@@ -87,7 +101,8 @@ fn do_allocate(money: Money, ratios: List(Int), total: Int) -> List(Money) {
     )
 
   let tuple(lhs, rhs) = list.split(groups, int.absolute_value(remainder))
-  list.append(
+
+  Ok(list.append(
     list.map(
       lhs,
       fn(a) {
@@ -98,5 +113,5 @@ fn do_allocate(money: Money, ratios: List(Int), total: Int) -> List(Money) {
       },
     ),
     rhs,
-  )
+  ))
 }

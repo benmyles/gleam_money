@@ -3,4 +3,6 @@
 pub type MoneyError {
   CurrencyMismatch
   UnknownCurrency
+  EmptyAllocationRatios
+  InvalidAllocationRatios
 }
