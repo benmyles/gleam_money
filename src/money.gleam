@@ -8,12 +8,33 @@ import money/money_error.{
 import money/currency
 import money/currency_db
 
-// Type to represent money (including currency and value).
+/// Money represents a monetary value in a specified currency.
+/// The value is in the base unit (for example, cents when USD).
 pub type Money {
   Money(currency: currency.Currency, value: Int)
 }
 
-// Compare the value of two Money types.
+/// Compares two Money types, returning an order if possible.
+///
+/// ## Examples
+///
+///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > compare(Money(usd, 2), Money(usd, 3))
+///    Ok(order.Lt)
+///
+///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > compare(Money(usd, 4), Money(usd, 3))
+///    Ok(order.Gt)
+///
+///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > compare(Money(usd, 3), Money(usd, 3))
+///    Ok(order.Eq)
+///
+///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > assert Ok(gbp) = currency_db.default().get(db, "GBP")
+///    > compare(Money(usd, 3), Money(gbp, 3))
+///    Error(CurrencyMismatch)
+///
 pub fn compare(a: Money, b: Money) -> Result(order.Order, MoneyError) {
   try tuple(a, b) = check_same_currency(a, b)
   Ok(int.compare(a.value, b.value))
