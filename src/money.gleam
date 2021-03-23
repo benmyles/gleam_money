@@ -2,7 +2,8 @@ import gleam/order
 import gleam/int
 import gleam/list
 import money/money_error.{
-  CurrencyMismatch, EmptyAllocationRatios, InvalidAllocationRatios, MoneyError,
+  CurrencyMismatch, EmptyAllocationRatios, InvalidAllocationRatios, InvalidNumAllocationRatios,
+  MoneyError,
 }
 import money/currency
 import money/currency_db
@@ -14,10 +15,8 @@ pub type Money {
 
 // Compare the value of two Money types.
 pub fn compare(a: Money, b: Money) -> Result(order.Order, MoneyError) {
-  case a.currency == b.currency {
-    True -> Ok(int.compare(a.value, b.value))
-    False -> Error(CurrencyMismatch)
-  }
+  try tuple(a, b) = check_same_currency(a, b)
+  Ok(int.compare(a.value, b.value))
 }
 
 // Convenience function to create new Money with same currency.
@@ -27,10 +26,8 @@ pub fn similar(old: Money, new_value: Int) -> Money {
 
 // Add two Money of the same currency together.
 pub fn add(a: Money, b: Money) -> Result(Money, MoneyError) {
-  case a.currency == b.currency {
-    True -> Ok(similar(a, a.value + b.value))
-    False -> Error(CurrencyMismatch)
-  }
+  try tuple(a, b) = check_same_currency(a, b)
+  Ok(similar(a, a.value + b.value))
 }
 
 // Returns a new Money that is the absolute value of the one supplied.
@@ -49,10 +46,7 @@ pub fn allocate_to(
   money: Money,
   num_groups: Int,
 ) -> Result(List(Money), MoneyError) {
-  try _ = case num_groups <= 0 {
-    True -> Error(InvalidAllocationRatios)
-    False -> Ok(False)
-  }
+  try num_groups = check_num_allocation_groups(num_groups)
 
   money
   |> allocate(
@@ -68,15 +62,7 @@ pub fn allocate(
   money: Money,
   ratios: List(Int),
 ) -> Result(List(Money), MoneyError) {
-  try _ = case list.is_empty(ratios) {
-    True -> Error(EmptyAllocationRatios)
-    False -> Ok(False)
-  }
-
-  try _ = case list.any(ratios, fn(a) { a <= 0 }) {
-    True -> Error(InvalidAllocationRatios)
-    False -> Ok(False)
-  }
+  try ratios = check_allocation_ratios(ratios)
 
   let total =
     list.fold(
@@ -114,4 +100,33 @@ pub fn allocate(
     ),
     rhs,
   ))
+}
+
+fn check_same_currency(
+  a: Money,
+  b: Money,
+) -> Result(tuple(Money, Money), MoneyError) {
+  case a.currency == b.currency {
+    True -> Ok(tuple(a, b))
+    False -> Error(CurrencyMismatch)
+  }
+}
+
+fn check_num_allocation_groups(num_groups: Int) -> Result(Int, MoneyError) {
+  case num_groups > 0 {
+    True -> Ok(num_groups)
+    False -> Error(InvalidNumAllocationRatios)
+  }
+}
+
+fn check_allocation_ratios(ratios: List(Int)) -> Result(List(Int), MoneyError) {
+  try ratios = case list.is_empty(ratios) {
+    True -> Error(EmptyAllocationRatios)
+    False -> Ok(ratios)
+  }
+
+  case list.any(ratios, fn(a) { a <= 0 }) {
+    True -> Error(InvalidAllocationRatios)
+    False -> Ok(ratios)
+  }
 }

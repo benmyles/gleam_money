@@ -5,7 +5,8 @@ import money.{Money}
 import money/currency
 import money/currency_db
 import money/money_error.{
-  CurrencyMismatch, EmptyAllocationRatios, InvalidAllocationRatios, UnknownCurrency,
+  CurrencyMismatch, EmptyAllocationRatios, InvalidAllocationRatios, InvalidNumAllocationRatios,
+  UnknownCurrency,
 }
 
 pub fn example_test() {
@@ -43,7 +44,7 @@ pub fn example_test() {
   assert Ok(groups) = money.allocate_to(Money(usd, 5), 2)
   groups
   |> should.equal([Money(usd, 3), Money(usd, 2)])
-  //
+
   // Allocate the money to two groups using the supplied ratios
   // (3/10 in group 1 and 7/10 in group 2):
   assert Ok(groups) = money.allocate(Money(usd, 5), [3, 7])
@@ -184,8 +185,9 @@ pub fn allocate_test() {
   assert Error(InvalidAllocationRatios) = money.allocate(Money(usd, 5), [-1])
   assert Error(InvalidAllocationRatios) = money.allocate(Money(usd, 5), [1, -1])
 
-  assert Error(InvalidAllocationRatios) = money.allocate_to(Money(usd, 5), 0)
-  assert Error(InvalidAllocationRatios) = money.allocate_to(Money(usd, 5), -1)
+  assert Error(InvalidNumAllocationRatios) = money.allocate_to(Money(usd, 5), 0)
+  assert Error(InvalidNumAllocationRatios) =
+    money.allocate_to(Money(usd, 5), -1)
 
   // Simple allocation to one group
   assert Ok(groups) = money.allocate(Money(usd, 5), [1])

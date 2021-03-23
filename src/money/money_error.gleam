@@ -5,4 +5,5 @@ pub type MoneyError {
   UnknownCurrency
   EmptyAllocationRatios
   InvalidAllocationRatios
+  InvalidNumAllocationRatios
 }
