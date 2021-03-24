@@ -1,8 +1,7 @@
-// Type alias to represent currency code as a String.
 pub type CurrencyCode =
   String
 
-// Type to represent the details of a currency.
+/// `Currency` represents a currency and contains ISO 4217 information.
 pub type Currency {
   Currency(
     code: CurrencyCode,

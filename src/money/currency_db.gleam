@@ -2,16 +2,52 @@ import gleam/map
 import money/currency.{Currency, CurrencyCode}
 import money/money_error
 
-// Type to hold details about currencies.
+/// `CurrencyDb` is a Map-backed container for all known currencies.
 pub type CurrencyDb =
   map.Map(CurrencyCode, Currency)
 
-// Create a CurrencyDb from a list of tuples.
+/// Returns a new `CurrencyDb` from a list of tuples.
+///
+/// ## Examples
+///
+///    > from_list([
+///    >   tuple(
+///    >     "AED",
+///    >     Currency(
+///    >       code: "AED",
+///    >       symbol: "د.إ",
+///    >       numeric_code: 784,
+///    >       minor_units: 2,
+///    >       name: "UAE Dirham",
+///    >     ),
+///    >   ),
+///    >   tuple(
+///    >     "AFN",
+///    >     Currency(
+///    >       code: "AFN",
+///    >       symbol: "؋",
+///    >       numeric_code: 971,
+///    >       minor_units: 2,
+///    >       name: "Afghani",
+///    >     ),
+///    >   )
+///    > ]
+///    > |> map.size()
+///    2
+///
 pub fn from_list(data: List(tuple(CurrencyCode, Currency))) -> CurrencyDb {
   map.from_list(data)
 }
 
-// Find the Currency for a given code.
+/// Returns the `Currency` in the `CurrencyDb` that is associated with the 
+/// currency code.
+///
+/// ## Examples
+///
+///    > default()
+///    > |> get("USD")
+///    Currency(code: "USD", ...)
+///
 pub fn get(
   from: CurrencyDb,
   code: CurrencyCode,
@@ -22,6 +58,15 @@ pub fn get(
   }
 }
 
+/// Returns a default `CurrencyDb` prepopulated with currencies.
+/// You should only build the db once and then pass it to your functions.
+///
+/// ## Examples
+///
+///    > default()
+///    > |> map.size()
+///    182
+///
 pub fn default() -> CurrencyDb {
   from_list([
     tuple(

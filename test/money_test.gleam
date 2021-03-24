@@ -1,6 +1,7 @@
 import gleam/should
 import gleam/order
 import gleam/list
+import gleam/map
 import money.{Money}
 import money/currency
 import money/currency_db
