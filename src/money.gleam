@@ -254,6 +254,28 @@ pub fn multiply_float(money: Money, multiplier: Float) -> Money {
   |> similar(new_value)
 }
 
+/// Test if the `Money` value is negative.
+///
+/// ## Examples
+///
+///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    
+///    > Money(usd, 1)
+///    > |> money.is_negative()
+///    False
+///
+///    > Money(usd, 0)
+///    > |> money.is_negative()
+///    False
+///
+///    > Money(usd, -1)
+///    > |> money.is_negative()
+///    True
+///
+pub fn is_negative(money: Money) -> Bool {
+  money.value < 0
+}
+
 fn check_same_currency(
   a: Money,
   b: Money,

@@ -341,3 +341,21 @@ pub fn multiply_float_test() {
   |> money.multiply_float(1.549)
   |> should.equal(Money(usd, 15))
 }
+
+pub fn is_negative_test() {
+  let db = currency_db.default()
+
+  assert Ok(usd) = currency_db.get(db, "USD")
+
+  Money(usd, 1)
+  |> money.is_negative()
+  |> should.equal(False)
+
+  Money(usd, 0)
+  |> money.is_negative()
+  |> should.equal(False)
+
+  Money(usd, -1)
+  |> money.is_negative()
+  |> should.equal(True)
+}
