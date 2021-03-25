@@ -261,3 +261,83 @@ pub fn allocate_test() {
     Money(usd, 25),
   ])
 }
+
+pub fn multiply_test() {
+  let db = currency_db.default()
+
+  assert Ok(usd) = currency_db.get(db, "USD")
+
+  Money(usd, 10)
+  |> money.multiply(2)
+  |> should.equal(Money(usd, 20))
+
+  Money(usd, 10)
+  |> money.multiply(-2)
+  |> should.equal(Money(usd, -20))
+
+  Money(usd, -10)
+  |> money.multiply(2)
+  |> should.equal(Money(usd, -20))
+
+  Money(usd, -10)
+  |> money.multiply(-2)
+  |> should.equal(Money(usd, 20))
+
+  Money(usd, 0)
+  |> money.multiply(2)
+  |> should.equal(Money(usd, 0))
+
+  Money(usd, 0)
+  |> money.multiply(0)
+  |> should.equal(Money(usd, 0))
+
+  Money(usd, 10)
+  |> money.multiply(0)
+  |> should.equal(Money(usd, 0))
+}
+
+pub fn multiply_float_test() {
+  let db = currency_db.default()
+
+  assert Ok(usd) = currency_db.get(db, "USD")
+
+  Money(usd, 10)
+  |> money.multiply_float(2.0)
+  |> should.equal(Money(usd, 20))
+
+  Money(usd, 10)
+  |> money.multiply_float(-2.0)
+  |> should.equal(Money(usd, -20))
+
+  Money(usd, -10)
+  |> money.multiply_float(2.0)
+  |> should.equal(Money(usd, -20))
+
+  Money(usd, -10)
+  |> money.multiply_float(-2.0)
+  |> should.equal(Money(usd, 20))
+
+  Money(usd, 0)
+  |> money.multiply_float(2.0)
+  |> should.equal(Money(usd, 0))
+
+  Money(usd, 0)
+  |> money.multiply_float(0.0)
+  |> should.equal(Money(usd, 0))
+
+  Money(usd, 10)
+  |> money.multiply_float(0.0)
+  |> should.equal(Money(usd, 0))
+
+  Money(usd, 10)
+  |> money.multiply_float(1.555436)
+  |> should.equal(Money(usd, 16))
+
+  Money(usd, 10)
+  |> money.multiply_float(1.550)
+  |> should.equal(Money(usd, 16))
+
+  Money(usd, 10)
+  |> money.multiply_float(1.549)
+  |> should.equal(Money(usd, 15))
+}

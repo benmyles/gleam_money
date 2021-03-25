@@ -1,5 +1,6 @@
 import gleam/order
 import gleam/int
+import gleam/float
 import gleam/list
 import money/money_error.{
   CurrencyMismatch, EmptyAllocationRatios, InvalidAllocationRatios, InvalidNumAllocationRatios,
@@ -217,6 +218,40 @@ pub fn allocate(
     ),
     rhs,
   ))
+}
+
+/// Multiply a `Money` by an Int.
+///
+/// ## Examples
+///
+///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    
+///    > Money(usd, 10)
+///    > |> money.multiply(2)
+///    Ok([Money(usd, 20)])
+///
+pub fn multiply(money: Money, multiplier: Int) -> Money {
+  money
+  |> similar(money.value * multiplier)
+}
+
+/// Multiply a `Money` by a Float.
+///
+/// ## Examples
+///
+///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    
+///    > Money(usd, 10)
+///    > |> money.multiply_float(1.550)
+///    Ok([Money(usd, 16)])
+///
+pub fn multiply_float(money: Money, multiplier: Float) -> Money {
+  let new_value =
+    int.to_float(money.value) *. multiplier
+    |> float.round()
+
+  money
+  |> similar(new_value)
 }
 
 fn check_same_currency(
