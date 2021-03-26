@@ -4,6 +4,7 @@ pub type MoneyError {
   CurrencyMismatch
   UnknownCurrency
   EmptyAllocationRatios
+  EmptyList
   InvalidAllocationRatios
   InvalidNumAllocationRatios
 }

@@ -3,7 +3,7 @@ import gleam/int
 import gleam/float
 import gleam/list
 import money/money_error.{
-  CurrencyMismatch, EmptyAllocationRatios, InvalidAllocationRatios, InvalidNumAllocationRatios,
+  CurrencyMismatch, EmptyAllocationRatios, EmptyList, InvalidAllocationRatios, InvalidNumAllocationRatios,
   MoneyError,
 }
 import money/currency
@@ -19,8 +19,9 @@ pub type Money {
 ///
 /// ## Examples
 ///
-///    > assert Ok(usd) = currency_db.default().get(db, "USD")
-///    > assert Ok(gbp) = currency_db.default().get(db, "GBP")
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
+///    > assert Ok(gbp) = db |> currency_db.get("GBP")
 ///
 ///    > compare(Money(usd, 2), Money(usd, 3))
 ///    Ok(order.Lt)
@@ -35,7 +36,7 @@ pub type Money {
 ///    Error(CurrencyMismatch)
 ///
 pub fn compare(a: Money, b: Money) -> Result(order.Order, MoneyError) {
-  try tuple(a, b) = check_same_currency(a, b)
+  try _ = check_same_currency([a, b])
   Ok(int.compare(a.value, b.value))
 }
 
@@ -43,7 +44,8 @@ pub fn compare(a: Money, b: Money) -> Result(order.Order, MoneyError) {
 ///
 /// ## Examples
 ///
-///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
 ///
 ///    > let m1 = Money(usd, 1000)
 ///    Money(currency: usd, value: 1000)
@@ -59,8 +61,9 @@ pub fn similar(old: Money, new_value: Int) -> Money {
 ///
 /// ## Examples
 ///
-///    > assert Ok(usd) = currency_db.default().get(db, "USD")
-///    > assert Ok(gbp) = currency_db.default().get(db, "GBP")
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
+///    > assert Ok(gbp) = db |> currency_db.get("GBP")
 ///
 ///    > let five_usd = Money(usd, 500)
 ///    Money(currency: usd, value: 500)
@@ -78,15 +81,15 @@ pub fn similar(old: Money, new_value: Int) -> Money {
 ///    Error(CurrencyMismatch)
 ///
 pub fn add(a: Money, b: Money) -> Result(Money, MoneyError) {
-  try tuple(a, b) = check_same_currency(a, b)
-  Ok(similar(a, a.value + b.value))
+  sum([a, b])
 }
 
 /// Returns a new `Money` with value set to absolute value of input value.
 ///
 /// ## Examples
 ///
-///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
 ///    
 ///    > Money(usd, -1000)
 ///    > |> absolute_value()
@@ -100,7 +103,8 @@ pub fn absolute_value(m: Money) -> Money {
 ///
 /// ## Examples
 ///
-///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
 ///    
 ///    > Money(usd, 1000)
 ///    > |> negate()
@@ -118,7 +122,8 @@ pub fn negate(m: Money) -> Money {
 ///
 /// ## Examples
 ///
-///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
 ///    
 ///    > allocate_to(Money(usd, 5), 1)
 ///    Ok([Money(usd, 5)])
@@ -139,7 +144,7 @@ pub fn allocate_to(
   money: Money,
   num_groups: Int,
 ) -> Result(List(Money), MoneyError) {
-  try num_groups = check_num_allocation_groups(num_groups)
+  try _ = check_num_allocation_groups(num_groups)
 
   money
   |> allocate(
@@ -153,7 +158,8 @@ pub fn allocate_to(
 ///
 /// ## Examples
 ///
-///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
 ///    
 ///    > allocate(Money(usd, 5), [1])
 ///    Ok([Money(usd, 5)])
@@ -180,7 +186,7 @@ pub fn allocate(
   money: Money,
   ratios: List(Int),
 ) -> Result(List(Money), MoneyError) {
-  try ratios = check_allocation_ratios(ratios)
+  try _ = check_allocation_ratios(ratios)
 
   let total =
     list.fold(
@@ -224,7 +230,8 @@ pub fn allocate(
 ///
 /// ## Examples
 ///
-///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
 ///    
 ///    > Money(usd, 10)
 ///    > |> money.multiply(2)
@@ -239,7 +246,8 @@ pub fn multiply(money: Money, multiplier: Int) -> Money {
 ///
 /// ## Examples
 ///
-///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
 ///    
 ///    > Money(usd, 10)
 ///    > |> money.multiply_float(1.550)
@@ -258,7 +266,8 @@ pub fn multiply_float(money: Money, multiplier: Float) -> Money {
 ///
 /// ## Examples
 ///
-///    > assert Ok(usd) = currency_db.default().get(db, "USD")
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
 ///    
 ///    > Money(usd, 1)
 ///    > |> money.is_negative()
@@ -276,31 +285,61 @@ pub fn is_negative(money: Money) -> Bool {
   money.value < 0
 }
 
-fn check_same_currency(
-  a: Money,
-  b: Money,
-) -> Result(tuple(Money, Money), MoneyError) {
-  case a.currency == b.currency {
-    True -> Ok(tuple(a, b))
+/// Sums a list of Money elements.
+///
+/// ## Example
+///
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
+///    
+///    > sum([Money(usd, 1), Money(usd, 2), Money(usd, 3)])
+///    Ok(Money(usd, 6))
+///
+///    > assert Ok(gbp) = db |> currency_db.get("GBP")
+///
+///    > sum([Money(usd, 1), Money(usd, 2), Money(gbp, 3)])
+///    Error(CurrencyMismatch)
+///
+pub fn sum(monies: List(Money)) -> Result(Money, MoneyError) {
+  try first = case monies {
+    [money, .._] -> Ok(money)
+    _ -> Error(EmptyList)
+  }
+
+  try _ = check_same_currency(monies)
+
+  let total_value =
+    list.fold(over: monies, from: 0, with: fn(a: Money, b: Int) { b + a.value })
+
+  Ok(similar(first, total_value))
+}
+
+fn check_same_currency(monies: List(Money)) -> Result(Bool, MoneyError) {
+  let num_currencies =
+    list.map(monies, with: fn(m: Money) { m.currency })
+    |> list.unique()
+    |> list.length()
+  case num_currencies == 1 {
+    True -> Ok(True)
     False -> Error(CurrencyMismatch)
   }
 }
 
-fn check_num_allocation_groups(num_groups: Int) -> Result(Int, MoneyError) {
+fn check_num_allocation_groups(num_groups: Int) -> Result(Bool, MoneyError) {
   case num_groups > 0 {
-    True -> Ok(num_groups)
+    True -> Ok(True)
     False -> Error(InvalidNumAllocationRatios)
   }
 }
 
-fn check_allocation_ratios(ratios: List(Int)) -> Result(List(Int), MoneyError) {
-  try ratios = case list.is_empty(ratios) {
+fn check_allocation_ratios(ratios: List(Int)) -> Result(Bool, MoneyError) {
+  try _ = case list.is_empty(ratios) {
     True -> Error(EmptyAllocationRatios)
-    False -> Ok(ratios)
+    False -> Ok(True)
   }
 
   case list.any(ratios, fn(a) { a <= 0 }) {
     True -> Error(InvalidAllocationRatios)
-    False -> Ok(ratios)
+    False -> Ok(True)
   }
 }

@@ -6,7 +6,7 @@ import money.{Money}
 import money/currency
 import money/currency_db
 import money/money_error.{
-  CurrencyMismatch, EmptyAllocationRatios, InvalidAllocationRatios, InvalidNumAllocationRatios,
+  CurrencyMismatch, EmptyAllocationRatios, EmptyList, InvalidAllocationRatios, InvalidNumAllocationRatios,
   UnknownCurrency,
 }
 
@@ -358,4 +358,25 @@ pub fn is_negative_test() {
   Money(usd, -1)
   |> money.is_negative()
   |> should.equal(True)
+}
+
+pub fn sum_test() {
+  let db = currency_db.default()
+
+  assert Ok(usd) = currency_db.get(db, "USD")
+
+  money.sum([Money(usd, 1), Money(usd, 2), Money(usd, 3)])
+  |> should.equal(Ok(Money(usd, 6)))
+
+  assert Ok(gbp) =
+    currency_db.default()
+    |> currency_db.get("GBP")
+
+  money.sum([Money(usd, 1), Money(usd, 2), Money(gbp, 3)])
+  |> should.equal(Error(CurrencyMismatch))
+
+  money.sum([])
+  |> should.equal(Error(EmptyList))
+
+  True
 }
