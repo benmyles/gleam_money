@@ -66,6 +66,31 @@ pub fn new_test() {
   |> should.equal(1000)
 }
 
+pub fn subtract_matched_currency_test() {
+  let db = currency_db.default()
+
+  assert Ok(usd) = currency_db.get(db, "USD")
+
+  money.subtract(minuend: Money(usd, 1000), subtrahend: Money(usd, 600))
+  |> should.equal(Ok(Money(usd, 400)))
+
+  money.subtract(minuend: Money(usd, -1000), subtrahend: Money(usd, 600))
+  |> should.equal(Ok(Money(usd, -1600)))
+
+  money.subtract(minuend: Money(usd, -1000), subtrahend: Money(usd, -600))
+  |> should.equal(Ok(Money(usd, -400)))
+}
+
+pub fn subtract_mismatched_currency_test() {
+  let db = currency_db.default()
+
+  assert Ok(usd) = currency_db.get(db, "USD")
+  assert Ok(gbp) = currency_db.get(db, "GBP")
+
+  money.subtract(minuend: Money(usd, 1000), subtrahend: Money(gbp, 600))
+  |> should.equal(Error(CurrencyMismatch))
+}
+
 pub fn add_matched_currency_test() {
   let db = currency_db.default()
 

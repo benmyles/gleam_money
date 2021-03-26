@@ -84,6 +84,28 @@ pub fn add(a: Money, b: Money) -> Result(Money, MoneyError) {
   sum([a, b])
 }
 
+/// Subtract the subtrahend `Money` from the minuend `Money`.
+///
+/// ## Examples
+///
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
+///    
+///    > money.subtract(minuend: Money(usd, 1000), subtrahend: Money(usd, 600))
+///    Ok(Money(usd, 400))
+///
+///    > assert Ok(gbp) = currency_db.get(db, "GBP")
+///    
+///    > money.subtract(minuend: Money(usd, 1000), subtrahend: Money(gbp, 600))
+///    Error(CurrencyMismatch)
+///
+pub fn subtract(
+  minuend a: Money,
+  subtrahend b: Money,
+) -> Result(Money, MoneyError) {
+  sum([a, negate(b)])
+}
+
 /// Returns a new `Money` with value set to absolute value of input value.
 ///
 /// ## Examples
