@@ -5,6 +5,7 @@ import gleam/map
 import money.{Money}
 import money/currency
 import money/currency_db
+import money/parsing
 import money/money_error.{
   CurrencyMismatch, EmptyAllocationRatios, EmptyList, InvalidAllocationRatios, InvalidNumAllocationRatios,
   UnknownCurrency,
@@ -404,4 +405,76 @@ pub fn sum_test() {
   |> should.equal(Error(EmptyList))
 
   True
+}
+
+pub fn parse_test() {
+  let db = currency_db.default()
+
+  assert Ok(usd) = currency_db.get(db, "USD")
+  assert Ok(gbp) = currency_db.get(db, "GBP")
+  assert Ok(lek) = currency_db.get(db, "ALL")
+  assert Ok(jod) = currency_db.get(db, "JOD")
+
+  //
+  // Valid Examples
+  //
+  money.parse("1000.00", usd)
+  |> should.equal(Ok(Money(usd, 100_000)))
+
+  money.parse("1000", usd)
+  |> should.equal(Ok(Money(usd, 100_000)))
+
+  money.parse("1,000.00", usd)
+  |> should.equal(Ok(Money(usd, 100_000)))
+
+  money.parse("1,000.23", usd)
+  |> should.equal(Ok(Money(usd, 100_023)))
+
+  money.parse("$1,000.00", usd)
+  |> should.equal(Ok(Money(usd, 100_000)))
+
+  money.parse(" $ 1,,000.00 ", usd)
+  |> should.equal(Ok(Money(usd, 100_000)))
+
+  money.parse("JOD1,000.000", jod)
+  |> should.equal(Ok(Money(jod, 1_000_000)))
+
+  money.parse("JOD 1,000.000", jod)
+  |> should.equal(Ok(Money(jod, 1_000_000)))
+
+  money.parse("$1,000,000.00", usd)
+  |> should.equal(Ok(Money(usd, 100_000_000)))
+
+  money.parse("£5", gbp)
+  |> should.equal(Ok(Money(gbp, 500)))
+
+  money.parse("£ 5.25", gbp)
+  |> should.equal(Ok(Money(gbp, 525)))
+
+  // Currency symbol with multiple characters
+  money.parse("Lek1,000.00", lek)
+  |> should.equal(Ok(Money(lek, 100_000)))
+
+  // Whitespace is trimmed
+  money.parse(" $10", usd)
+  |> should.equal(Ok(Money(usd, 1000)))
+  money.parse("$10 ", usd)
+  |> should.equal(Ok(Money(usd, 1000)))
+  money.parse("   $10      ", usd)
+  |> should.equal(Ok(Money(usd, 1000)))
+
+  //
+  // Invalid Examples
+  //
+  money.parse("£5", usd)
+  |> should.equal(Error(Nil))
+
+  money.parse("a1,000.00", usd)
+  |> should.equal(Error(Nil))
+
+  money.parse("a$1,000.00", usd)
+  |> should.equal(Error(Nil))
+
+  money.parse("$$1,000.00", usd)
+  |> should.equal(Error(Nil))
 }

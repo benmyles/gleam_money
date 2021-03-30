@@ -8,6 +8,7 @@ import money/money_error.{
 }
 import money/currency
 import money/currency_db
+import money/parsing
 
 /// `Money` represents a monetary value in a specified currency.
 /// The value is in the base unit (for example, cents when USD).
@@ -334,6 +335,33 @@ pub fn sum(monies: List(Money)) -> Result(Money, MoneyError) {
     list.fold(over: monies, from: 0, with: fn(a: Money, b: Int) { b + a.value })
 
   Ok(similar(first, total_value))
+}
+
+/// Try to parse a String into a Money.
+///
+/// ## Example
+///
+///    > let db = currency_db.default()
+///    > assert Ok(usd) = db |> currency_db.get("USD")
+///    > assert Ok(gbp) = db |> currency_db.get("GBP")
+///    
+///    > money.parse("1000.00", usd)
+///    Ok(Money(usd, 100000))
+///
+///    > money.parse("£5", gbp)
+///    Ok(Money(gbp, 500))
+///
+///    > money.parse("£ 5.25", gbp)
+///    Ok(Money(gbp, 525))
+///
+pub fn parse(input: String, currency: currency.Currency) -> Result(Money, Nil) {
+  try value =
+    parsing.parse(
+      input,
+      currency,
+      parsing.ParseOpts(separator: ",", delimiter: "."),
+    )
+  Ok(Money(value: value, currency: currency))
 }
 
 fn check_same_currency(monies: List(Money)) -> Result(Bool, MoneyError) {
